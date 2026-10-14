@@ -154,7 +154,7 @@ const handleSubmit = () => {
           type="number"
           min="0"
           step="any"
-          :readonly="isEditing"
+          :disabled="isEditing"
           :class="{ 'input-error': errors.quantity }"
           placeholder="0"
         />
