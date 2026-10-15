@@ -28,7 +28,14 @@ const filteredProducts = computed(() => {
   })
 })
 
-const successMessage = computed(() => (route.query.message ? String(route.query.message) : ''))
+const successMessage = ref(route.query.message ? String(route.query.message) : '')
+
+watch(
+  () => route.query.message,
+  (message) => {
+    successMessage.value = message ? String(message) : ''
+  }
+)
 
 watch(
   () => route.query.status,
@@ -36,6 +43,7 @@ watch(
     statusFilter.value = status === 'Low Stock' ? 'Low Stock' : 'All'
   }
 )
+
 
 const handleDelete = (id) => {
   const product = inventory.value.find((item) => item.id === id)
@@ -51,12 +59,16 @@ const handleDelete = (id) => {
   }
 
   try {
-    deleteProduct(id)
+    const deletedProduct = deleteProduct(id)
+
+    successMessage.value = `${deletedProduct.name} was deleted successfully.`
     errorMessage.value = ''
   } catch (error) {
+    successMessage.value = ''
     errorMessage.value = error.message
   }
 }
+
 
 const handleEdit = (id) => {
   router.push(`/edit-product/${id}`)
