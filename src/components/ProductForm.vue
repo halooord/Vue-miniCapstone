@@ -1,3 +1,4 @@
+
 <script setup>
 import { reactive, ref, watch } from 'vue'
 
@@ -13,6 +14,10 @@ const props = defineProps({
   isEditing: {
     type: Boolean,
     default: false
+  },
+  draftKey: {
+    type: String,
+    default: ''
   }
 })
 
@@ -30,6 +35,36 @@ const defaultForm = {
 
 const form = reactive({ ...defaultForm })
 const errors = ref({})
+const draftError = ref('')
+
+const draftFields = [
+  'name',
+  'category',
+  'price',
+  'quantity',
+  'minStock',
+  'description'
+]
+
+const restoreDraft = () => {
+  if (!props.draftKey || props.isEditing) return
+
+  try {
+    const saved = localStorage.getItem(props.draftKey)
+    if (!saved) return
+
+    const draft = JSON.parse(saved)
+    if (!draft || typeof draft !== 'object' || Array.isArray(draft)) return
+
+    for (const field of draftFields) {
+      if (typeof draft[field] === 'string' || typeof draft[field] === 'number') {
+        form[field] = String(draft[field])
+      }
+    }
+  } catch (error) {
+    draftError.value = 'Unable to restore your saved draft.'
+  }
+}
 
 const categoryOptions = [
   'Fresh Meat',
@@ -42,6 +77,7 @@ watch(
   () => props.initialData,
   (value) => {
     const nextForm = value ?? {}
+
     Object.assign(form, defaultForm, {
       id: nextForm.id ?? '',
       name: nextForm.name ?? '',
@@ -51,10 +87,29 @@ watch(
       minStock: nextForm.minStock ?? '',
       description: nextForm.description ?? ''
     })
+
     errors.value = {}
+    restoreDraft()
   },
   { immediate: true }
 )
+
+watch(form, () => {
+  if (!props.draftKey || props.isEditing) return
+
+  try {
+    const draft = {}
+
+    for (const field of draftFields) {
+      draft[field] = form[field]
+    }
+
+    localStorage.setItem(props.draftKey, JSON.stringify(draft))
+    draftError.value = ''
+  } catch (error) {
+    draftError.value = 'Unable to save your draft. Browser storage may be full or disabled.'
+  }
+}, { flush: 'sync' })
 
 const validateForm = () => {
   const validationErrors = {}
@@ -90,7 +145,7 @@ const handleSubmit = () => {
     return
   }
 
-  emit('submit', {
+  const productData = {
     ...form,
     name: form.name.trim(),
     category: form.category.trim(),
@@ -98,12 +153,18 @@ const handleSubmit = () => {
     price: Number(form.price),
     quantity: Number(form.quantity),
     minStock: Number(form.minStock)
-  })
+  }
+
+  if (props.isEditing) delete productData.quantity
+
+  emit('submit', productData)
 }
 </script>
 
 <template>
   <form class="form-card" @submit.prevent="handleSubmit">
+    <p v-if="draftError" class="form-error">{{ draftError }}</p>
+
     <div class="form-grid">
       <div class="field-group">
         <label for="product-name">Product Name</label>

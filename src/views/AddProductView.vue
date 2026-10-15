@@ -1,3 +1,4 @@
+
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -6,10 +7,21 @@ import { addProduct } from '../services/inventoryService'
 
 const router = useRouter()
 const errorMessage = ref('')
+const DRAFT_KEY = 'poultry-shop-add-product-draft'
+
+const clearDraft = () => {
+  try {
+    localStorage.removeItem(DRAFT_KEY)
+  } catch (error) {
+    console.warn('Unable to clear saved product draft:', error)
+  }
+}
 
 const handleSubmit = (productData) => {
   try {
     const savedProduct = addProduct(productData)
+    clearDraft()
+
     router.push({
       path: '/inventory',
       query: {
@@ -22,6 +34,7 @@ const handleSubmit = (productData) => {
 }
 
 const handleCancel = () => {
+  clearDraft()
   router.push('/inventory')
 }
 </script>
@@ -31,11 +44,19 @@ const handleCancel = () => {
     <div class="page-header">
       <div>
         <h1 class="page-title">Add Product</h1>
-        <p class="page-subtitle">Create a new poultry inventory item with the required details.</p>
+        <p class="page-subtitle">
+          Create a new poultry inventory item with the required details.
+        </p>
       </div>
     </div>
 
     <p v-if="errorMessage" class="form-error">{{ errorMessage }}</p>
-    <ProductForm submit-label="Add Product" @submit="handleSubmit" @cancel="handleCancel" />
+
+    <ProductForm
+      :draft-key="DRAFT_KEY"
+      submit-label="Add Product"
+      @submit="handleSubmit"
+      @cancel="handleCancel"
+    />
   </div>
 </template>
